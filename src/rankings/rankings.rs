@@ -1,21 +1,7 @@
+use std::collections::HashMap;
+
 use worker::*;
-
 use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PlayerCreate {
-    name: String,
-    score: u16,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Player {
-    id: u16,
-    name: String,
-    score: u16,
-    wins: u16,
-    losses: u16,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Match {
@@ -32,6 +18,7 @@ pub struct Session {
     nets: u8,
 }
 
+/// Durable Object storage for match and player data
 #[durable_object]
 pub struct Rankings {
     state: State,
@@ -47,11 +34,11 @@ impl DurableObject for Rankings {
     async fn fetch(&mut self, req: Request) -> Result<Response> {
         match req.path().as_str() {
             "/setup" => {
-                self.state.storage().put("next_player_id", 0).await?;
+                player::setup_player(&self.State);
                 self.state.storage().put("next_match_id", 0).await?;
 
                 // Maybe should use IndexMap at some point
-                let players: Vec<Player> = vec![];
+                let players: HashMap<u16, Player> = HashMap::new();
                 self.state.storage().put("players", players).await?;
 
                 let matches: Vec<Match> = vec![];
@@ -61,23 +48,22 @@ impl DurableObject for Rankings {
             }
             "/players" => match req.method() {
                 Method::Get => {
-                    let players: Vec<Player> = self.state.storage().get("players").await?;
+                    let players: HashMap<u16, Player> = self.state.storage().get("players").await?;
                     Response::ok(serde_json::to_string(&players)?)
                 }
                 Method::Post => {
                     let next_player_id: u16 = self.state.storage().get("next_player_id").await?;
-                    let mut players: Vec<Player> = self.state.storage().get("players").await?;
+                    let mut players: HashMap<u16, Player> = self.state.storage().get("players").await?;
 
                     let body: PlayerCreate = req.clone()?.json().await?;
 
                     let new_player = Player {
-                        id: next_player_id,
                         name: body.name,
                         score: body.score,
                         wins: 0,
                         losses: 0,
                     };
-                    players.push(new_player);
+                    players.insert(next_player_id, new_player);
 
                     self.state.storage().put("players", players).await?;
                     self.state
