@@ -13,6 +13,6 @@ command = "worker-build --release"
 [durable_objects]
 bindings = [{name = "RANKINGS", class_name = "Rankings"}]
 
-#[[migrations]]
-#tag = "v1"
-#new_classes = ["Rankings"]
+[[migrations]]
+tag = "v1"
+new_classes = ["Rankings"]

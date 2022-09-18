@@ -5,8 +5,8 @@ use worker::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerCreate {
-    pub name: String,
-    pub score: u16,
+    name: String,
+    score: u16,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,5 +1,6 @@
 mod matches;
 mod players;
+mod session;
 use matches::Match;
 use players::{Player, PlayerCreate};
 
@@ -31,6 +32,7 @@ impl DurableObject for Rankings {
             "/setup" => {
                 players::setup(&self.state).await?;
                 matches::setup(&self.state).await?;
+                session::reset(&self.state).await?;
 
                 Response::ok("")
             }
@@ -56,6 +58,29 @@ impl DurableObject for Rankings {
                     let body: Match = req.clone()?.json().await?;
 
                     matches::create(&self.state, body).await?;
+                    Response::ok("")
+                }
+                _ => Response::error("Not Found", 404),
+            },
+            "/session" => match req.method() {
+                Method::Get => {
+                    let session = session::get(&self.state).await?;
+                    Response::ok(serde_json::to_string(&session)?)
+                }
+                Method::Put => {
+                    let body: Vec<u16> = req.clone()?.json().await?;
+
+                    session::start(&self.state, body).await?;
+                    Response::ok("")
+                }
+                Method::Post => {
+                    let body: Vec<u16> = req.clone()?.json().await?;
+
+                    session::add_match(&self.state, body).await?;
+                    Response::ok("")
+                }
+                Method::Delete => {
+                    session::reset(&self.state).await?;
                     Response::ok("")
                 }
                 _ => Response::error("Not Found", 404),

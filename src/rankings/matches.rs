@@ -1,5 +1,3 @@
-use super::Player;
-
 use serde::{Deserialize, Serialize};
 use worker::*;
 
