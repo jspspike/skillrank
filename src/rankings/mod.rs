@@ -1,18 +1,12 @@
 mod matches;
 mod players;
 mod session;
-use matches::Match;
-use players::{Player, PlayerCreate};
 
-use serde::{Deserialize, Serialize};
+pub(crate) use matches::Match;
+pub(crate) use players::{Player, PlayerCreate};
+pub(crate) use session::Session;
+
 use worker::*;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Session {
-    enabled: bool,
-    active: Vec<Player>,
-    nets: u8,
-}
 
 /// Durable Object storage for match and player data
 #[durable_object]

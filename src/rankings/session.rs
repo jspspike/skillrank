@@ -5,7 +5,8 @@ use worker::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Session {
-    players: HashMap<u16, u16>,
+    pub(crate) players: HashMap<u16, u16>,
+    pub(crate) most_played: u16,
 }
 
 pub async fn reset(state: &State) -> Result<()> {
@@ -21,7 +22,10 @@ pub async fn start(state: &State, players: Vec<u16>) -> Result<()> {
         p.insert(*player, 0);
     });
 
-    let session: Option<Session> = Some(Session { players: p });
+    let session: Option<Session> = Some(Session {
+        players: p,
+        most_played: 0,
+    });
     state.storage().put("session", session).await
 }
 
@@ -33,17 +37,24 @@ pub async fn add_match(state: &State, players: Vec<u16>) -> Result<Session> {
     let session: Option<Session> = state.storage().get("session").await?;
 
     if let Some(mut session) = session {
+        let mut most_played = session.most_played;
         players.iter().for_each(|player| {
             session
                 .players
                 .entry(*player)
-                .and_modify(|count| *count += 1)
+                .and_modify(|count| {
+                    *count += 1;
+                    if *count > most_played {
+                        most_played = *count
+                    }
+                })
                 .or_insert(1);
         });
+        session.most_played = most_played;
 
         state.storage().put("session", &session).await?;
-        return Ok(session);
+        Ok(session)
     } else {
-        return Err(Error::RouteNoDataError);
+        Err(Error::RouteNoDataError)
     }
 }

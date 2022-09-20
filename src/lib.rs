@@ -1,5 +1,6 @@
 use worker::*;
 
+mod matchmaking;
 mod rankings;
 mod utils;
 

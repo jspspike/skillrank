@@ -11,10 +11,10 @@ pub struct PlayerCreate {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Player {
-    name: String,
-    score: u16,
-    wins: u16,
-    losses: u16,
+    pub(crate) name: String,
+    pub(crate) score: u16,
+    pub(crate) wins: u16,
+    pub(crate) losses: u16,
 }
 
 pub async fn setup(state: &State) -> Result<()> {
