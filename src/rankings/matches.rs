@@ -3,10 +3,10 @@ use worker::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Match {
-    id: u16,
-    team1: Vec<u16>,
-    team2: Vec<u16>,
-    team1_win: bool,
+    pub(crate) id: u16,
+    pub(crate) team1: Vec<u16>,
+    pub(crate) team2: Vec<u16>,
+    pub(crate) team1_win: bool,
 }
 
 pub async fn setup(state: &State) -> Result<()> {

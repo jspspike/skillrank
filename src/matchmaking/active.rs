@@ -5,6 +5,18 @@ use std::collections::HashMap;
 
 use worker::*;
 
+pub(super) fn get_active_players(
+    players: Vec<u16>,
+    ranks: HashMap<u16, Player>,
+    session: Session,
+    game_info: GameInfo,
+) -> Result<Vec<PlayerInfo>> {
+    let player_infos = setup_player_info(players, ranks, session)?;
+    let mut active_players = find_active_players(player_infos, game_info);
+    active_players.sort_by(|a, b| b.score.cmp(&a.score));
+    Ok(active_players)
+}
+
 fn setup_player_info(
     players: Vec<u16>,
     ranks: HashMap<u16, Player>,
@@ -62,22 +74,12 @@ fn find_active_players(
     players
 }
 
-pub(super) fn get_active_players(
-    players: Vec<u16>,
-    ranks: HashMap<u16, Player>,
-    session: Session,
-    game_info: GameInfo,
-) -> Result<Vec<PlayerInfo>> {
-    let player_infos = setup_player_info(players, ranks, session)?;
-    Ok(find_active_players(player_infos, game_info))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_get_active_players() {
+    fn test_find_active_players() {
         let player_infos: Vec<Vec<PlayerInfo>> = vec![
             vec![
                 PlayerInfo { id: 1, score: 2000 },
