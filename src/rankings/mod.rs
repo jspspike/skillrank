@@ -8,6 +8,8 @@ pub(crate) use session::Session;
 
 use worker::*;
 
+pub async fn fetch_with_path(path: &str) -> Result<Response> {}
+
 /// Durable Object storage for match and player data
 #[durable_object]
 pub struct Rankings {
@@ -33,7 +35,7 @@ impl DurableObject for Rankings {
             "/players" => match req.method() {
                 Method::Get => {
                     let players = players::get(&self.state).await?;
-                    Response::ok(serde_json::to_string(&players)?)
+                    Response::from_json(&players)
                 }
                 Method::Post => {
                     let body: PlayerCreate = req.clone()?.json().await?;

@@ -37,12 +37,25 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get_async("/", |req, ctx| async move {
             let namespace = ctx.durable_object("RANKINGS")?;
             let stub = namespace.id_from_name("Spikeball")?.get_stub()?;
-            //let players_req = Request::new("https://workers.com/players", Method::Get).unwrap();
-            //let players: HashMap<u16, Player> = stub.fetch_with_str("https://workers.com/players").await?.json().await?;
+            let mut headers = Headers::new();
+            headers.set("content-type", "application/json").unwrap();
+            let players_req = Request::new_with_init(
+                "https://w/players",
+                &RequestInit {
+                    body: None,
+                    headers,
+                    cf: CfProperties::default(),
+                    method: Method::Get,
+                    redirect: RequestRedirect::Follow,
+                },
+            )
+            .unwrap();
+            let players: HashMap<u16, Player> =
+                stub.fetch_with_request(players_req).await?.json().await?;
 
             //matchmaking::generate_matches();
-            //Response::ok(serde_json::to_string(&players).unwrap())
-            Response::ok("")
+            Response::ok(serde_json::to_string(&players).unwrap())
+            //Response::ok("")
         })
         .run(req, env)
         .await
