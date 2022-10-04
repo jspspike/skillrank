@@ -6,13 +6,13 @@ use worker::*;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerCreate {
     name: String,
-    score: u32,
+    score: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Player {
     pub(crate) name: String,
-    pub(crate) score: u32,
+    pub(crate) score: i32,
     pub(crate) wins: u16,
     pub(crate) losses: u16,
 }

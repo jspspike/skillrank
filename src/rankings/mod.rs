@@ -6,9 +6,21 @@ pub(crate) use matches::Match;
 pub(crate) use players::{Player, PlayerCreate};
 pub(crate) use session::Session;
 
+use wasm_bindgen::JsValue;
 use worker::*;
 
-pub async fn fetch_with_path(path: &str) -> Result<Response> {}
+pub fn make_request(path: &str, body: Option<JsValue>, method: Method) -> Result<Request> {
+    Request::new_with_init(
+        format!("https://w{}", path).as_str(),
+        &RequestInit {
+            body,
+            headers: Headers::new(),
+            cf: CfProperties::default(),
+            method,
+            redirect: RequestRedirect::Follow,
+        },
+    )
+}
 
 /// Durable Object storage for match and player data
 #[durable_object]
@@ -48,7 +60,7 @@ impl DurableObject for Rankings {
             "/matches" => match req.method() {
                 Method::Get => {
                     let matches = matches::get(&self.state).await?;
-                    Response::ok(serde_json::to_string(&matches)?)
+                    Response::from_json(&matches)
                 }
                 Method::Post => {
                     let body: Match = req.clone()?.json().await?;
@@ -61,7 +73,7 @@ impl DurableObject for Rankings {
             "/session" => match req.method() {
                 Method::Get => {
                     let session = session::get(&self.state).await?;
-                    Response::ok(serde_json::to_string(&session)?)
+                    Response::from_json(&session)
                 }
                 Method::Put => {
                     let body: Vec<u16> = req.clone()?.json().await?;

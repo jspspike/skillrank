@@ -2,7 +2,7 @@ mod matchmaking;
 mod rankings;
 mod utils;
 
-use rankings::{Match, Player, Session};
+use rankings::{make_request, Match, Player, Session};
 
 use std::collections::HashMap;
 
@@ -39,22 +39,21 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let stub = namespace.id_from_name("Spikeball")?.get_stub()?;
             let mut headers = Headers::new();
             headers.set("content-type", "application/json").unwrap();
-            let players_req = Request::new_with_init(
-                "https://w/players",
-                &RequestInit {
-                    body: None,
-                    headers,
-                    cf: CfProperties::default(),
-                    method: Method::Get,
-                    redirect: RequestRedirect::Follow,
-                },
-            )
-            .unwrap();
-            let players: HashMap<u16, Player> =
-                stub.fetch_with_request(players_req).await?.json().await?;
+            let req = make_request("/players", None, Method::Get).unwrap();
+            let players: HashMap<u16, Player> = stub.fetch_with_request(req).await?.json().await?;
+            let req = make_request("/session", None, Method::Get).unwrap();
+            let session: Session = stub.fetch_with_request(req).await?.json().await?;
 
-            //matchmaking::generate_matches();
-            Response::ok(serde_json::to_string(&players).unwrap())
+            let curr = players.keys().map(|x| *x).collect();
+
+            let game_info = matchmaking::GameInfo {
+                games: 2,
+                players_per_team: 2,
+                stability: 2.0,
+            };
+
+            let matches = matchmaking::generate_matches(curr, players, session, game_info)?;
+            Response::ok(serde_json::to_string(&matches).unwrap())
             //Response::ok("")
         })
         .run(req, env)
