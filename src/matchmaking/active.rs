@@ -59,6 +59,10 @@ fn find_active_players(
         }
     }
 
+    if times_played_index >= player_infos.len() {
+        return players;
+    }
+
     let avg = if players.len() == 0 {
         10000
     } else {

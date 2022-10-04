@@ -6,7 +6,7 @@ use active::get_active_players;
 use std::cmp;
 use std::collections::{HashMap, VecDeque};
 
-use rand::prelude::*;
+use getrandom::getrandom;
 use worker::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -117,20 +117,13 @@ fn find_player(
     let probs = get_prob(player_score, other_scores, stability);
 
     let rng_val = rng();
-    assert_eq!(rng_val, 0.3);
+    for i in 0..probs.len() {
+        if probs[i] < rng_val {
+            return active_players.remove(i).unwrap();
+        }
+    }
 
-    let (index, _) = probs
-        .iter()
-        .enumerate()
-        .reduce(|accum, (index, prob)| {
-            if rng_val < *prob {
-                (index, prob)
-            } else {
-                accum
-            }
-        })
-        .unwrap();
-    active_players.remove(index).unwrap()
+    active_players.pop_back().unwrap()
 }
 
 fn get_prob(player: i32, others: Vec<i32>, stability: f32) -> Vec<f32> {
@@ -161,11 +154,9 @@ fn get_prob(player: i32, others: Vec<i32>, stability: f32) -> Vec<f32> {
 }
 
 fn rng() -> f32 {
-    let val = vec![2, 3];
-    let addr = &val as *const Vec<i32>;
-
-    let rng = addr as u32 % 1000000;
-    rng as f32 / 1000000 as f32
+    let mut val: [u8; 1] = [0];
+    getrandom(&mut val).unwrap();
+    val[0] as f32 / u8::MAX as f32
 }
 
 #[cfg(test)]
@@ -179,5 +170,14 @@ mod test {
 
         let probs = get_prob(player, others, 2.0);
         assert_eq!(probs, vec![0.600939, 0.8849765, 0.99999994])
+    }
+
+    #[test]
+    fn test_get_probs() {
+        let player = 2658;
+        let others = vec![2344, 2638, 1986];
+
+        let probs = get_prob(player, others, 2.0);
+        assert_eq!(probs, vec![0.30645022, 0.9286095, 1.0])
     }
 }

@@ -52,9 +52,17 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 stability: 2.0,
             };
 
-            let matches = matchmaking::generate_matches(curr, players, session, game_info)?;
-            Response::ok(serde_json::to_string(&matches).unwrap())
-            //Response::ok("")
+            let matches = matchmaking::generate_matches(curr, players.clone(), session, game_info)?;
+            let mut s = String::new();
+            for m in matches {
+                s.push_str(format!("{:?}\n", players.get(&m.team1[0]).unwrap()).as_str());
+                s.push_str(format!("{:?}\n", players.get(&m.team1[1]).unwrap()).as_str());
+                s.push_str(format!("{:?}\n", players.get(&m.team2[0]).unwrap()).as_str());
+                s.push_str(format!("{:?}\n", players.get(&m.team2[1]).unwrap()).as_str());
+                s.push_str("\n\n");
+            }
+
+            Response::ok(s)
         })
         .run(req, env)
         .await
