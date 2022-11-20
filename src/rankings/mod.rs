@@ -6,20 +6,41 @@ pub(crate) use matches::Match;
 pub(crate) use players::{Player, PlayerCreate};
 pub(crate) use session::Session;
 
+use serde::de::DeserializeOwned;
 use wasm_bindgen::JsValue;
 use worker::*;
 
-pub fn make_request(path: &str, body: Option<JsValue>, method: Method) -> Result<Request> {
-    Request::new_with_init(
-        format!("https://w{}", path).as_str(),
-        &RequestInit {
-            body,
-            headers: Headers::new(),
-            cf: CfProperties::default(),
-            method,
-            redirect: RequestRedirect::Follow,
-        },
-    )
+pub struct Client {
+    stub: Stub,
+}
+
+impl Client {
+    pub fn new(ctx: RouteContext<()>, name: &str) -> Result<Self> {
+        let namespace = ctx.durable_object("RANKINGS")?;
+        let stub = namespace.id_from_name(name)?.get_stub()?;
+
+        Ok(Client { stub })
+    }
+
+    pub async fn fetch<B: DeserializeOwned>(
+        &self,
+        path: &str,
+        body: Option<JsValue>,
+        method: Method,
+    ) -> Result<B> {
+        let req = Request::new_with_init(
+            format!("https://w{}", path).as_str(),
+            &RequestInit {
+                body,
+                headers: Headers::new(),
+                cf: CfProperties::default(),
+                method,
+                redirect: RequestRedirect::Follow,
+            },
+        )?;
+
+        self.stub.fetch_with_request(req).await?.json().await
+    }
 }
 
 /// Durable Object storage for match and player data

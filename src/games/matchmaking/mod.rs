@@ -1,6 +1,6 @@
 mod active;
 
-use super::rankings::{Match, Player, Session};
+use crate::rankings::{Match, Player, Session};
 use active::get_active_players;
 
 use std::cmp;
@@ -10,7 +10,7 @@ use getrandom::getrandom;
 use worker::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct PlayerInfo {
+struct PlayerInfo {
     id: u16,
     score: i32,
 }
