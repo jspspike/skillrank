@@ -1,6 +1,7 @@
 mod active;
 
 use crate::rankings::{Match, Player, Session};
+use crate::RatingType;
 use active::get_active_players;
 
 use std::cmp;
@@ -9,17 +10,17 @@ use std::collections::{HashMap, VecDeque};
 use getrandom::getrandom;
 use worker::*;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 struct PlayerInfo {
     id: u16,
-    score: i32,
+    score: RatingType,
 }
 
 #[derive(Clone, Copy)]
 pub struct GameInfo {
     pub games: usize,
     pub players_per_team: usize,
-    pub stability: f32,
+    pub stability: f64,
 }
 
 pub fn generate_matches(
@@ -44,24 +45,28 @@ pub fn generate_matches(
         let top_player = active_players.pop_front().unwrap();
         team1.push(top_player.id);
 
-        let active_player_scores: Vec<i32> =
-            active_players.iter().map(|player| player.score).collect();
+        let active_player_scores: Vec<f64> = active_players
+            .iter()
+            .map(|player| player.score.rating)
+            .collect();
 
         let top_player2 = find_player(
-            top_player.score,
+            top_player.score.rating,
             active_player_scores,
             game_info.stability,
             &mut active_players,
         );
         team2.push(top_player2.id);
 
-        let mut overall_diff = top_player.score as isize - top_player2.score as isize;
-        let mut overall_score = top_player.score + top_player2.score;
+        let mut overall_diff = top_player.score.rating - top_player2.score.rating;
+        let mut overall_score = top_player.score.rating + top_player2.score.rating;
 
         while team1.len() + team2.len() < per_game {
-            let score_avg = overall_score / (team1.len() + team2.len()) as i32;
-            let active_player_scores: Vec<i32> =
-                active_players.iter().map(|player| player.score).collect();
+            let score_avg = overall_score / (team1.len() + team2.len()) as f64;
+            let active_player_scores: Vec<f64> = active_players
+                .iter()
+                .map(|player| player.score.rating)
+                .collect();
 
             let next_player = find_player(
                 score_avg,
@@ -70,31 +75,31 @@ pub fn generate_matches(
                 &mut active_players,
             );
 
-            let diffs: Vec<i32> = active_players
+            let diffs: Vec<f64> = active_players
                 .iter()
-                .map(|player| (player.score.abs_diff(next_player.score) as i32))
+                .map(|player| (player.score.rating - next_player.score.rating).abs())
                 .collect();
             let next_player2 = find_player(
-                overall_diff.abs() as i32,
+                overall_diff.abs(),
                 diffs,
                 game_info.stability,
                 &mut active_players,
             );
 
-            if (next_player.score as isize - next_player2.score as isize).is_positive()
-                == overall_diff.is_positive()
+            if (next_player.score.rating - next_player2.score.rating).is_sign_positive()
+                == overall_diff.is_sign_positive()
             {
                 team1.push(next_player2.id);
                 team2.push(next_player.id);
-                overall_diff += next_player2.score as isize - next_player.score as isize;
+                overall_diff += next_player2.score.rating - next_player.score.rating;
             } else {
                 team1.push(next_player.id);
                 team2.push(next_player2.id);
-                overall_diff += next_player.score as isize - next_player2.score as isize;
+                overall_diff += next_player.score.rating - next_player2.score.rating;
             }
 
-            overall_score += next_player.score;
-            overall_score += next_player2.score;
+            overall_score += next_player.score.rating;
+            overall_score += next_player2.score.rating;
         }
 
         matches.push(Match {
@@ -109,16 +114,16 @@ pub fn generate_matches(
 }
 
 fn find_player(
-    player_score: i32,
-    other_scores: Vec<i32>,
-    stability: f32,
+    player_score: f64,
+    other_scores: Vec<f64>,
+    stability: f64,
     active_players: &mut VecDeque<PlayerInfo>,
 ) -> PlayerInfo {
     let probs = get_prob(player_score, other_scores, stability);
 
     let rng_val = rng();
-    for i in 0..probs.len() {
-        if probs[i] < rng_val {
+    for (i, prob) in probs.iter().enumerate() {
+        if *prob < rng_val as f64 {
             return active_players.remove(i).unwrap();
         }
     }
@@ -126,20 +131,20 @@ fn find_player(
     active_players.pop_back().unwrap()
 }
 
-fn get_prob(player: i32, others: Vec<i32>, stability: f32) -> Vec<f32> {
-    let mut probs: Vec<f32> = vec![];
+fn get_prob(player: f64, others: Vec<f64>, stability: f64) -> Vec<f64> {
+    let mut probs: Vec<f64> = vec![];
 
     let mut total = 0.0;
     others.iter().for_each(|other| {
-        let p = player.abs_diff(*other) as f32;
+        let p = player - *other;
 
-        probs.push(p);
+        probs.push(p.abs());
         total += p;
     });
 
     let mut prob_total = 0.0;
     probs.iter_mut().for_each(|prob| {
-        *prob = 1.0 - (*prob / total as f32);
+        *prob = 1.0 - (*prob / total);
         *prob = prob.powf(stability);
         prob_total += *prob;
     });
@@ -165,19 +170,22 @@ mod test {
 
     #[test]
     fn test_get_prob() {
-        let player = 2000;
-        let others = vec![2100, 1400, 1000];
+        let player = 2000.0;
+        let others = vec![2100.0, 1400.0, 1000.0];
 
         let probs = get_prob(player, others, 2.0);
-        assert_eq!(probs, vec![0.600939, 0.8849765, 0.99999994])
+        assert_eq!(
+            probs,
+            vec![0.6490066225165563, 0.9172185430463575, 0.9999999999999999]
+        )
     }
 
     #[test]
     fn test_get_probs() {
-        let player = 2658;
-        let others = vec![2344, 2638, 1986];
+        let player = 2658.0;
+        let others = vec![2344.0, 2638.0, 1986.0];
 
         let probs = get_prob(player, others, 2.0);
-        assert_eq!(probs, vec![0.30645022, 0.9286095, 1.0])
+        assert_eq!(probs, vec![0.30645020913647375, 0.9286094600336872, 1.0])
     }
 }

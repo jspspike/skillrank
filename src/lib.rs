@@ -6,13 +6,17 @@ use rankings::{Match, Player, Session};
 
 use std::collections::HashMap;
 
+use skillratings::trueskill::{TrueSkillConfig, TrueSkillRating};
 use worker::*;
+
+// Should probably use type parameter for structs where types are used
+type RatingType = TrueSkillRating;
+type ConfigType = TrueSkillConfig;
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     utils::set_panic_hook();
     let router = Router::new();
-
 
     router
         .on_async("/setup", |req, ctx| async move {
