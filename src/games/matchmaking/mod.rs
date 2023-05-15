@@ -8,12 +8,13 @@ use std::cmp;
 use std::collections::{HashMap, VecDeque};
 
 use getrandom::getrandom;
+use skillratings::Rating;
 use worker::*;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 struct PlayerInfo {
     id: u16,
-    score: RatingType,
+    rating: RatingType,
 }
 
 #[derive(Clone, Copy)]
@@ -25,7 +26,7 @@ pub struct GameInfo {
 
 pub fn generate_matches(
     players: Vec<u16>,
-    ranks: HashMap<u16, Player>,
+    ranks: HashMap<u16, Player<RatingType>>,
     session: Session,
     game_info: GameInfo,
 ) -> Result<Vec<Match>> {
@@ -47,25 +48,25 @@ pub fn generate_matches(
 
         let active_player_scores: Vec<f64> = active_players
             .iter()
-            .map(|player| player.score.rating)
+            .map(|player| player.rating.score())
             .collect();
 
         let top_player2 = find_player(
-            top_player.score.rating,
+            top_player.rating.score(),
             active_player_scores,
             game_info.stability,
             &mut active_players,
         );
         team2.push(top_player2.id);
 
-        let mut overall_diff = top_player.score.rating - top_player2.score.rating;
-        let mut overall_score = top_player.score.rating + top_player2.score.rating;
+        let mut overall_diff = top_player.rating.score() - top_player2.rating.score();
+        let mut overall_score = top_player.rating.score() + top_player2.rating.score();
 
         while team1.len() + team2.len() < per_game {
             let score_avg = overall_score / (team1.len() + team2.len()) as f64;
             let active_player_scores: Vec<f64> = active_players
                 .iter()
-                .map(|player| player.score.rating)
+                .map(|player| player.rating.score())
                 .collect();
 
             let next_player = find_player(
@@ -77,7 +78,7 @@ pub fn generate_matches(
 
             let diffs: Vec<f64> = active_players
                 .iter()
-                .map(|player| (player.score.rating - next_player.score.rating).abs())
+                .map(|player| (player.rating.score() - next_player.rating.score()).abs())
                 .collect();
             let next_player2 = find_player(
                 overall_diff.abs(),
@@ -86,27 +87,26 @@ pub fn generate_matches(
                 &mut active_players,
             );
 
-            if (next_player.score.rating - next_player2.score.rating).is_sign_positive()
+            if (next_player.rating.score() - next_player2.rating.score()).is_sign_positive()
                 == overall_diff.is_sign_positive()
             {
                 team1.push(next_player2.id);
                 team2.push(next_player.id);
-                overall_diff += next_player2.score.rating - next_player.score.rating;
+                overall_diff += next_player2.rating.score() - next_player.rating.score();
             } else {
                 team1.push(next_player.id);
                 team2.push(next_player2.id);
-                overall_diff += next_player.score.rating - next_player2.score.rating;
+                overall_diff += next_player.rating.score() - next_player2.rating.score();
             }
 
-            overall_score += next_player.score.rating;
-            overall_score += next_player2.score.rating;
+            overall_score += next_player.rating.score();
+            overall_score += next_player2.rating.score();
         }
 
         matches.push(Match {
             id: 0,
             team1,
             team2,
-            team1_win: false,
         });
     }
 

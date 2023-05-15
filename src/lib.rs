@@ -6,12 +6,12 @@ use rankings::{Match, Player, Session};
 
 use std::collections::HashMap;
 
-use skillratings::trueskill::{TrueSkillConfig, TrueSkillRating};
+use skillratings::trueskill::{TrueSkill, TrueSkillConfig, TrueSkillRating};
+use skillratings::TeamRatingSystem;
 use worker::*;
 
 // Should probably use type parameter for structs where types are used
 type RatingType = TrueSkillRating;
-type ConfigType = TrueSkillConfig;
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
@@ -39,13 +39,22 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let stub = namespace.id_from_name("Spikeball")?.get_stub()?;
             stub.fetch_with_request(req).await
         })
+        .on_async("/add-match", |mut req, ctx| async move {
+            let client = rankings::Client::new(ctx, "Spikeball")?;
+            let m: Match = req.json().await?;
+            let rating_system = TrueSkill::new(TrueSkillConfig::new());
+
+            games::add_match(&m.team1, &m.team2, client, rating_system).await?;
+            Response::ok("")
+        })
         .get_async("/", |req, ctx| async move {
             let client = rankings::Client::new(ctx, "Spikeball")?;
 
-            let players: HashMap<u16, Player> = client.fetch("/players", None, Method::Get).await?;
-            let session: Session = client.fetch("/session", None, Method::Get).await?;
+            let players: HashMap<u16, Player<RatingType>> =
+                client.fetch("/players", "", Method::Get).await?;
+            let session: Session = client.fetch("/session", "", Method::Get).await?;
 
-            let curr = players.keys().map(|x| *x).collect();
+            let curr = players.keys().copied().collect();
 
             let game_info = games::matchmaking::GameInfo {
                 games: 2,

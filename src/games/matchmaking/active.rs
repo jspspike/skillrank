@@ -1,19 +1,21 @@
 use super::PlayerInfo;
 use crate::rankings::{Player, Session};
+use crate::RatingType;
 
 use std::collections::HashMap;
 
+use skillratings::Rating;
 use worker::*;
 
 pub(super) fn get_active_players(
     players: Vec<u16>,
-    ranks: HashMap<u16, Player>,
+    ranks: HashMap<u16, Player<RatingType>>,
     session: Session,
     total_players: usize,
 ) -> Result<Vec<PlayerInfo>> {
     let player_infos = setup_player_info(players, ranks, session)?;
     let mut active_players = find_active_players(player_infos, total_players);
-    active_players.sort_by(|a, b| (b.score.rating as isize).cmp(&(a.score.rating as isize)));
+    active_players.sort_by(|a, b| (b.rating.score() as isize).cmp(&(a.rating.score() as isize)));
 
     assert_eq!(active_players.len(), total_players);
     Ok(active_players)
@@ -21,19 +23,19 @@ pub(super) fn get_active_players(
 
 fn setup_player_info(
     players: Vec<u16>,
-    ranks: HashMap<u16, Player>,
+    ranks: HashMap<u16, Player<RatingType>>,
     session: Session,
 ) -> Result<Vec<Vec<PlayerInfo>>> {
     let mut player_infos: Vec<Vec<PlayerInfo>> = vec![vec![]; (session.most_played + 1) as usize];
 
     for player in players {
         let times_played = *session.players.get(&player).unwrap_or(&0);
-        let score = match ranks.get(&player) {
-            Some(player) => player.score,
+        let rating = match ranks.get(&player) {
+            Some(player) => player.rating,
             None => return Err(Error::RouteNoDataError),
         };
 
-        player_infos[times_played as usize].push(PlayerInfo { id: player, score });
+        player_infos[times_played as usize].push(PlayerInfo { id: player, rating });
     }
 
     Ok(player_infos)
@@ -50,7 +52,7 @@ fn find_active_players(
     while players.len() < total_players {
         if player_infos[times_played_index].len() <= total_players - players.len() {
             for p in &player_infos[times_played_index] {
-                total_score += p.score.rating;
+                total_score += p.rating.score();
                 players.push(*p);
             }
             times_played_index += 1;
@@ -69,8 +71,8 @@ fn find_active_players(
         total_score / players.len() as f64
     };
     player_infos[times_played_index].sort_by(|a, b| {
-        let diffa = (a.score.rating as isize - avg as isize).abs();
-        let diffb = (b.score.rating as isize - avg as isize).abs();
+        let diffa = (a.rating.score() as isize - avg as isize).abs();
+        let diffb = (b.rating.score() as isize - avg as isize).abs();
         diffa.cmp(&diffb)
     });
 
@@ -93,21 +95,21 @@ mod tests {
             vec![
                 PlayerInfo {
                     id: 1,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2000.0,
                         uncertainty: 5.0,
                     },
                 },
                 PlayerInfo {
                     id: 2,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2100.0,
                         uncertainty: 5.0,
                     },
                 },
                 PlayerInfo {
                     id: 3,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 1900.0,
                         uncertainty: 5.0,
                     },
@@ -116,21 +118,21 @@ mod tests {
             vec![
                 PlayerInfo {
                     id: 4,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 1000.0,
                         uncertainty: 5.0,
                     },
                 },
                 PlayerInfo {
                     id: 5,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2100.0,
                         uncertainty: 5.0,
                     },
                 },
                 PlayerInfo {
                     id: 6,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2600.0,
                         uncertainty: 5.0,
                     },
@@ -144,28 +146,28 @@ mod tests {
             vec![
                 PlayerInfo {
                     id: 1,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2000.0,
                         uncertainty: 5.0,
                     }
                 },
                 PlayerInfo {
                     id: 2,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2100.0,
                         uncertainty: 5.0,
                     }
                 },
                 PlayerInfo {
                     id: 3,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 1900.0,
                         uncertainty: 5.0,
                     }
                 },
                 PlayerInfo {
                     id: 5,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2100.0,
                         uncertainty: 5.0,
                     }
@@ -179,42 +181,42 @@ mod tests {
         let player_infos: Vec<Vec<PlayerInfo>> = vec![vec![
             PlayerInfo {
                 id: 1,
-                score: RatingType {
+                rating: RatingType {
                     rating: 2000.0,
                     uncertainty: 5.0,
                 },
             },
             PlayerInfo {
                 id: 2,
-                score: RatingType {
+                rating: RatingType {
                     rating: 2150.0,
                     uncertainty: 5.0,
                 },
             },
             PlayerInfo {
                 id: 3,
-                score: RatingType {
+                rating: RatingType {
                     rating: 1900.0,
                     uncertainty: 5.0,
                 },
             },
             PlayerInfo {
                 id: 4,
-                score: RatingType {
+                rating: RatingType {
                     rating: 1000.0,
                     uncertainty: 5.0,
                 },
             },
             PlayerInfo {
                 id: 5,
-                score: RatingType {
+                rating: RatingType {
                     rating: 2100.0,
                     uncertainty: 5.0,
                 },
             },
             PlayerInfo {
                 id: 6,
-                score: RatingType {
+                rating: RatingType {
                     rating: 2600.0,
                     uncertainty: 5.0,
                 },
@@ -227,28 +229,28 @@ mod tests {
             vec![
                 PlayerInfo {
                     id: 6,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2600.0,
                         uncertainty: 5.0,
                     }
                 },
                 PlayerInfo {
                     id: 2,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2150.0,
                         uncertainty: 5.0,
                     }
                 },
                 PlayerInfo {
                     id: 5,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2100.0,
                         uncertainty: 5.0,
                     }
                 },
                 PlayerInfo {
                     id: 1,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2000.0,
                         uncertainty: 5.0,
                     }
@@ -262,7 +264,7 @@ mod tests {
         let players = vec![0, 1, 2, 3, 4, 5];
         let example = Player {
             name: "Test".to_string(),
-            score: RatingType {
+            rating: RatingType {
                 rating: 2000.0,
                 uncertainty: 5.0,
             },
@@ -295,35 +297,35 @@ mod tests {
             vec![
                 PlayerInfo {
                     id: 0,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2000.0,
                         uncertainty: 5.0,
                     },
                 },
                 PlayerInfo {
                     id: 1,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2000.0,
                         uncertainty: 5.0,
                     },
                 },
                 PlayerInfo {
                     id: 2,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2000.0,
                         uncertainty: 5.0,
                     },
                 },
                 PlayerInfo {
                     id: 3,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2000.0,
                         uncertainty: 5.0,
                     },
                 },
                 PlayerInfo {
                     id: 4,
-                    score: RatingType {
+                    rating: RatingType {
                         rating: 2000.0,
                         uncertainty: 5.0,
                     },
@@ -331,7 +333,7 @@ mod tests {
             ],
             vec![PlayerInfo {
                 id: 5,
-                score: RatingType {
+                rating: RatingType {
                     rating: 2000.0,
                     uncertainty: 5.0,
                 },
