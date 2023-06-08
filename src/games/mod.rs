@@ -28,7 +28,7 @@ pub async fn add_match<RS: TeamRatingSystem>(
     console_log!("{:?}", winners_ratings);
     console_log!("{:?}", losers_ratings);
     let (winners_final, losers_final) =
-        rating_system.rating(&winners_ratings, &losers_ratings, &Outcomes::WIN);
+        rating_system.rate(&winners_ratings, &losers_ratings, &Outcomes::WIN);
     console_log!("{:?}", winners_final);
     console_log!("{:?}", losers_final);
 

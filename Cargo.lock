@@ -497,8 +497,9 @@ dependencies = [
 
 [[package]]
 name = "skillratings"
-version = "0.24.0"
-source = "git+https://github.com/jspspike/skillratings#283f23764a409f9f59f4f70d6df64d5f902cf757"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82a9810ae02fd1f6d86c66fa7eebe1224576251ea9b0b62fa1f2ea29502599aa"
 dependencies = [
  "serde",
 ]

@@ -48,25 +48,25 @@ pub fn generate_matches(
 
         let active_player_scores: Vec<f64> = active_players
             .iter()
-            .map(|player| player.rating.score())
+            .map(|player| player.rating.rating())
             .collect();
 
         let top_player2 = find_player(
-            top_player.rating.score(),
+            top_player.rating.rating(),
             active_player_scores,
             game_info.stability,
             &mut active_players,
         );
         team2.push(top_player2.id);
 
-        let mut overall_diff = top_player.rating.score() - top_player2.rating.score();
-        let mut overall_score = top_player.rating.score() + top_player2.rating.score();
+        let mut overall_diff = top_player.rating.rating() - top_player2.rating.rating();
+        let mut overall_score = top_player.rating.rating() + top_player2.rating.rating();
 
         while team1.len() + team2.len() < per_game {
             let score_avg = overall_score / (team1.len() + team2.len()) as f64;
             let active_player_scores: Vec<f64> = active_players
                 .iter()
-                .map(|player| player.rating.score())
+                .map(|player| player.rating.rating())
                 .collect();
 
             let next_player = find_player(
@@ -78,7 +78,7 @@ pub fn generate_matches(
 
             let diffs: Vec<f64> = active_players
                 .iter()
-                .map(|player| (player.rating.score() - next_player.rating.score()).abs())
+                .map(|player| (player.rating.rating() - next_player.rating.rating()).abs())
                 .collect();
             let next_player2 = find_player(
                 overall_diff.abs(),
@@ -87,20 +87,20 @@ pub fn generate_matches(
                 &mut active_players,
             );
 
-            if (next_player.rating.score() - next_player2.rating.score()).is_sign_positive()
+            if (next_player.rating.rating() - next_player2.rating.rating()).is_sign_positive()
                 == overall_diff.is_sign_positive()
             {
                 team1.push(next_player2.id);
                 team2.push(next_player.id);
-                overall_diff += next_player2.rating.score() - next_player.rating.score();
+                overall_diff += next_player2.rating.rating() - next_player.rating.rating();
             } else {
                 team1.push(next_player.id);
                 team2.push(next_player2.id);
-                overall_diff += next_player.rating.score() - next_player2.rating.score();
+                overall_diff += next_player.rating.rating() - next_player2.rating.rating();
             }
 
-            overall_score += next_player.rating.score();
-            overall_score += next_player2.rating.score();
+            overall_score += next_player.rating.rating();
+            overall_score += next_player2.rating.rating();
         }
 
         matches.push(Match {
