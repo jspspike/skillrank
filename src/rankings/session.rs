@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::games::matchmaking::GameInfo;
+
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -7,6 +9,13 @@ use worker::*;
 pub struct Session {
     pub(crate) players: HashMap<u16, u16>,
     pub(crate) most_played: u16,
+    pub(crate) game_info: GameInfo,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SessionCreate {
+    pub(crate) players: Vec<u16>,
+    pub(crate) game_info: GameInfo,
 }
 
 pub async fn reset(state: &State) -> Result<()> {
@@ -15,16 +24,17 @@ pub async fn reset(state: &State) -> Result<()> {
     state.storage().put("session", session).await
 }
 
-pub async fn start(state: &State, players: Vec<u16>) -> Result<()> {
+pub async fn start(state: &State, body: SessionCreate) -> Result<()> {
     let mut p: HashMap<u16, u16> = HashMap::new();
 
-    players.iter().for_each(|player| {
+    body.players.iter().for_each(|player| {
         p.insert(*player, 0);
     });
 
     let session: Option<Session> = Some(Session {
         players: p,
         most_played: 0,
+        game_info: body.game_info,
     });
     state.storage().put("session", session).await
 }

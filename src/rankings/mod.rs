@@ -5,7 +5,7 @@ mod session;
 use crate::RatingType;
 pub(crate) use matches::Match;
 pub(crate) use players::{Player, PlayerCreate};
-pub(crate) use session::Session;
+pub(crate) use session::{Session, SessionCreate};
 
 use std::collections::HashMap;
 
@@ -121,7 +121,7 @@ impl DurableObject for Rankings {
                     Response::from_json(&session)
                 }
                 Method::Put => {
-                    let body: Vec<u16> = req.clone()?.json().await?;
+                    let body: SessionCreate = req.clone()?.json().await?;
 
                     session::start(&self.state, body).await?;
                     Response::from_json(&Empty {})

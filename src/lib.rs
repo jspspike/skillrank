@@ -6,8 +6,10 @@ use rankings::{Match, Player, Session};
 
 use std::collections::HashMap;
 
+use serde::Serialize;
 use skillratings::trueskill::{TrueSkill, TrueSkillConfig, TrueSkillRating};
-use skillratings::TeamRatingSystem;
+use skillratings::{Rating, TeamRatingSystem};
+use tinytemplate::TinyTemplate;
 use worker::*;
 
 // Should probably use type parameter for structs where types are used
@@ -47,7 +49,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             games::add_match(&m.team1, &m.team2, client, rating_system).await?;
             Response::ok("")
         })
-        .get_async("/", |req, ctx| async move {
+        .get_async("/make", |req, ctx| async move {
             let client = rankings::Client::new(ctx, "Spikeball")?;
 
             let players: HashMap<u16, Player<RatingType>> =
@@ -74,6 +76,121 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             }
 
             Response::ok(s)
+        })
+        .get_async("/sesh", |_req, ctx| async move {
+            let client = rankings::Client::new(ctx, "Spikeball")?;
+            let template = include_str!("../content/session.html");
+            let mut tt = TinyTemplate::new();
+            tt.add_template("/session", template)
+                .map_err(|err| err.to_string())?;
+
+            let players: HashMap<u16, Player<RatingType>> =
+                client.fetch("/players", "", Method::Get).await?;
+            let session: Option<Session> = client.fetch("/session", "", Method::Get).await?;
+            #[derive(Serialize)]
+            struct PlayerString {
+                name: String,
+                id: u16,
+            }
+
+            #[derive(Serialize)]
+            struct Context {
+                title: String,
+                session: bool,
+                players: Vec<PlayerString>,
+            }
+
+            let players_string = players
+                .into_iter()
+                .map(|(id, player)| PlayerString {
+                    name: player.name,
+                    id,
+                })
+                .collect();
+
+            let context = Context {
+                title: "Spikeball".to_string(),
+                session: session.is_some(),
+                players: players_string,
+            };
+
+            let rendered = tt
+                .render("/session", &context)
+                .map_err(|err| err.to_string())?;
+
+            Response::from_html(rendered)
+        })
+        .get_async("/", |_req, ctx| async move {
+            let client = rankings::Client::new(ctx, "Spikeball")?;
+            let template = include_str!("../content/index.html");
+            let mut tt = TinyTemplate::new();
+            tt.add_template("/", template)
+                .map_err(|err| err.to_string())?;
+
+            #[derive(Serialize)]
+            struct MatchString {
+                winners: Vec<String>,
+                losers: Vec<String>,
+            }
+
+            #[derive(Serialize)]
+            struct PlayerString {
+                rank: usize,
+                name: String,
+                score: isize,
+            }
+
+            #[derive(Serialize)]
+            struct Context {
+                title: String,
+                matches: Vec<MatchString>,
+                players: Vec<PlayerString>,
+            }
+
+            let players: HashMap<u16, Player<RatingType>> =
+                client.fetch("/players", "", Method::Get).await?;
+            let matches: Vec<Match> = client.fetch("/matches", "", Method::Get).await?;
+
+            let matches_string = matches
+                .iter()
+                .rev()
+                .take(15)
+                .map(|m| MatchString {
+                    winners: m
+                        .team1
+                        .iter()
+                        .map(|winner| players.get(winner).unwrap().name.clone())
+                        .collect(),
+                    losers: m
+                        .team2
+                        .iter()
+                        .map(|loser| players.get(loser).unwrap().name.clone())
+                        .collect(),
+                })
+                .collect();
+
+            let mut players_vec: Vec<&Player<RatingType>> = players.values().collect();
+            players_vec
+                .sort_by(|a, b| (b.rating.rating() as isize).cmp(&(a.rating.rating() as isize)));
+            let players_string = players_vec
+                .iter()
+                .enumerate()
+                .map(|(index, player)| PlayerString {
+                    rank: index + 1,
+                    name: player.name.clone(),
+                    score: player.rating.rating() as isize,
+                })
+                .collect();
+
+            let context = Context {
+                title: "Spikeball".to_string(),
+                matches: matches_string,
+                players: players_string,
+            };
+
+            let rendered = tt.render("/", &context).map_err(|err| err.to_string())?;
+
+            Response::from_html(rendered)
         })
         .run(req, env)
         .await

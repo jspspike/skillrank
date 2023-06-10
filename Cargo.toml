@@ -17,6 +17,7 @@ serde = { version = "1.0.147", features = ["derive"] }
 getrandom = { version = "0.2", features = ["js"] }
 skillratings = { version = "0.25.0", features = ["serde"] }
 serde-wasm-bindgen = "0.5"
+tinytemplate = "1.2.1"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

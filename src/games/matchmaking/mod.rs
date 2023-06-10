@@ -8,6 +8,7 @@ use std::cmp;
 use std::collections::{HashMap, VecDeque};
 
 use getrandom::getrandom;
+use serde::{Deserialize, Serialize};
 use skillratings::Rating;
 use worker::*;
 
@@ -17,7 +18,7 @@ struct PlayerInfo {
     rating: RatingType,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct GameInfo {
     pub games: usize,
     pub players_per_team: usize,
