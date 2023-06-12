@@ -129,8 +129,14 @@ impl DurableObject for Rankings {
                 Method::Post => {
                     let body: Vec<u16> = req.clone()?.json().await?;
 
-                    session::add_match(&self.state, body).await?;
-                    Response::from_json(&Empty {})
+                    let session = session::add_match(&self.state, body).await?;
+                    Response::from_json(&session)
+                }
+                Method::Patch => {
+                    let body: Vec<u16> = req.clone()?.json().await?;
+
+                    let session = session::add_player(&self.state, body).await?;
+                    Response::from_json(&session)
                 }
                 Method::Delete => {
                     session::reset(&self.state).await?;

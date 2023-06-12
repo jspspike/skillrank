@@ -25,12 +25,8 @@ pub async fn add_match<RS: TeamRatingSystem>(
         .map(|loser| players.get(loser).unwrap().rating)
         .collect();
 
-    console_log!("{:?}", winners_ratings);
-    console_log!("{:?}", losers_ratings);
     let (winners_final, losers_final) =
         rating_system.rate(&winners_ratings, &losers_ratings, &Outcomes::WIN);
-    console_log!("{:?}", winners_final);
-    console_log!("{:?}", losers_final);
 
     winners
         .iter()

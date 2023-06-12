@@ -9,7 +9,7 @@ use worker::*;
 
 pub(super) fn get_active_players(
     players: Vec<u16>,
-    ranks: HashMap<u16, Player<RatingType>>,
+    ranks: &HashMap<u16, Player<RatingType>>,
     session: Session,
     total_players: usize,
 ) -> Result<Vec<PlayerInfo>> {
@@ -23,7 +23,7 @@ pub(super) fn get_active_players(
 
 fn setup_player_info(
     players: Vec<u16>,
-    ranks: HashMap<u16, Player<RatingType>>,
+    ranks: &HashMap<u16, Player<RatingType>>,
     session: Session,
 ) -> Result<Vec<Vec<PlayerInfo>>> {
     let mut player_infos: Vec<Vec<PlayerInfo>> = vec![vec![]; (session.most_played + 1) as usize];
@@ -88,6 +88,8 @@ fn find_active_players(
 mod tests {
     use super::*;
     use crate::RatingType;
+    use crate::rankings::Session;
+    use crate::games::matchmaking::GameInfo;
 
     #[test]
     fn test_find_active_players() {
@@ -287,12 +289,17 @@ mod tests {
         session_players.insert(4, 0);
         session_players.insert(5, 1);
 
-        let session = crate::rankings::Session {
+        let session = Session {
             players: session_players,
             most_played: 1,
+            game_info: GameInfo{
+                games: 2,
+                players_per_team: 2,
+                stability: 2.0,
+            },
         };
 
-        let player_infos = setup_player_info(players, ranks, session).unwrap();
+        let player_infos = setup_player_info(players, &ranks, session).unwrap();
         let expected: Vec<Vec<PlayerInfo>> = vec![
             vec![
                 PlayerInfo {

@@ -27,7 +27,7 @@ pub struct GameInfo {
 
 pub fn generate_matches(
     players: Vec<u16>,
-    ranks: HashMap<u16, Player<RatingType>>,
+    ranks: &HashMap<u16, Player<RatingType>>,
     session: Session,
     game_info: GameInfo,
 ) -> Result<Vec<Match>> {
@@ -105,7 +105,7 @@ pub fn generate_matches(
         }
 
         matches.push(Match {
-            id: 0,
+            id: matches.len() as u16,
             team1,
             team2,
         });
