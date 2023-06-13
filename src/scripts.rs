@@ -54,3 +54,23 @@ pub const SESSION: &str = r##"
   </body>
 </html>
     "##;
+
+pub const PLAYER: &str = r##"
+<script>
+      $(document).ready(function () {
+        $('#add-player').click(function () {
+          const score = Number($("#player-score").val());
+          $.ajax({
+              url: '/players',
+              type: 'POST',
+              data: JSON.stringify({
+                "name": $("#player-name").val(),
+                "score": isNaN(score) ? null : score,
+              }),
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
+"##;

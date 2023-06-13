@@ -3,8 +3,8 @@ mod rankings;
 mod scripts;
 mod utils;
 
-use rankings::{Match, Player, Session};
 use games::matchmaking;
+use rankings::{Match, Player, Session};
 
 use std::collections::HashMap;
 
@@ -63,7 +63,13 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                     format!("{}{}, ", team2_acc, player.name)
                 });
 
-                format!("{}Game {}\nTeam 1:{}\nTeam 2:{}\n\n\n", acc,  m.id + 1, team_1, team_2)
+                format!(
+                    "{}Game {}<br>Team 1:{}<br>Team 2:{}<br><br>",
+                    acc,
+                    m.id + 1,
+                    team_1,
+                    team_2
+                )
             });
             Response::ok(matches_str)
         })
@@ -72,40 +78,35 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let m: Match = req.json().await?;
             let rating_system = TrueSkill::new(TrueSkillConfig {
                 draw_probability: 0.0,
-                beta: 100.0,
+                beta: 6.0,
                 default_dynamics: 0.15,
             });
 
             games::add_match(&m.team1, &m.team2, client, rating_system).await?;
             Response::ok("")
         })
-        .get_async("/make", |req, ctx| async move {
-            let client = rankings::Client::new(ctx, "Spikeball")?;
+        .get_async("/player", |_req, _ctx| async move {
+            let template = include_str!("../content/player.html");
+            let mut tt = TinyTemplate::new();
+            tt.add_template("/player", template)
+                .map_err(|err| err.to_string())?;
 
-            let players: HashMap<u16, Player<RatingType>> =
-                client.fetch("/players", "", Method::Get).await?;
-            let session: Session = client.fetch("/session", "", Method::Get).await?;
-
-            let curr = players.keys().copied().collect();
-
-            let game_info = games::matchmaking::GameInfo {
-                games: 2,
-                players_per_team: 2,
-                stability: 2.0,
-            };
-
-            let matches =
-                games::matchmaking::generate_matches(curr, &players, session, game_info)?;
-            let mut s = String::new();
-            for m in matches {
-                s.push_str(format!("{:?}\n", players.get(&m.team1[0]).unwrap()).as_str());
-                s.push_str(format!("{:?}\n", players.get(&m.team1[1]).unwrap()).as_str());
-                s.push_str(format!("{:?}\n", players.get(&m.team2[0]).unwrap()).as_str());
-                s.push_str(format!("{:?}\n", players.get(&m.team2[1]).unwrap()).as_str());
-                s.push_str("\n\n");
+            #[derive(Serialize)]
+            struct Context {
+                title: String,
+                default_score: f64,
             }
 
-            Response::ok(s)
+            let context = Context {
+                title: "Spikeball".to_string(),
+                default_score: 25.0,
+            };
+
+            let mut rendered = tt
+                .render("/player", &context)
+                .map_err(|err| err.to_string())?;
+            rendered.push_str(scripts::PLAYER);
+            Response::from_html(rendered)
         })
         .get_async("/sesh", |_req, ctx| async move {
             let client = rankings::Client::new(ctx, "Spikeball")?;
@@ -141,12 +142,14 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 .collect();
 
             let session_players: Vec<PlayerString> = match session {
-                Some(ref s) => { s.players.keys().map(|id| {
-                    PlayerString {
+                Some(ref s) => s
+                    .players
+                    .keys()
+                    .map(|id| PlayerString {
                         name: players.get(id).unwrap().name.clone(),
-                        id: *id
-                    }
-                }).collect() },
+                        id: *id,
+                    })
+                    .collect(),
                 None => vec![],
             };
 
@@ -154,7 +157,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 title: "Spikeball".to_string(),
                 session: session.is_some(),
                 players: players_string,
-                session_players
+                session_players,
             };
 
             let mut rendered = tt

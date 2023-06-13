@@ -87,9 +87,9 @@ fn find_active_players(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::RatingType;
-    use crate::rankings::Session;
     use crate::games::matchmaking::GameInfo;
+    use crate::rankings::Session;
+    use crate::RatingType;
 
     #[test]
     fn test_find_active_players() {
@@ -292,7 +292,7 @@ mod tests {
         let session = Session {
             players: session_players,
             most_played: 1,
-            game_info: GameInfo{
+            game_info: GameInfo {
                 games: 2,
                 players_per_team: 2,
                 stability: 2.0,
