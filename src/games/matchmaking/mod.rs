@@ -124,7 +124,7 @@ fn find_player(
 
     let rng_val = rng();
     for (i, prob) in probs.iter().enumerate() {
-        if *prob < rng_val as f64 {
+        if rng_val < *prob {
             return active_players.remove(i).unwrap();
         }
     }
@@ -137,7 +137,7 @@ fn get_prob(player: f64, others: Vec<f64>, stability: f64) -> Vec<f64> {
 
     let mut total = 0.0;
     others.iter().for_each(|other| {
-        let p = player - *other;
+        let p = (player - *other).abs();
 
         probs.push(p.abs());
         total += p;
@@ -159,10 +159,10 @@ fn get_prob(player: f64, others: Vec<f64>, stability: f64) -> Vec<f64> {
     probs
 }
 
-fn rng() -> f32 {
+fn rng() -> f64 {
     let mut val: [u8; 1] = [0];
     getrandom(&mut val).unwrap();
-    val[0] as f32 / u8::MAX as f32
+    val[0] as f64 / u8::MAX as f64
 }
 
 #[cfg(test)]
@@ -172,21 +172,53 @@ mod test {
     #[test]
     fn test_get_prob() {
         let player = 2000.0;
+        let others = vec![1000.0, 1000.0, 2000.0];
+        let probs = get_prob(player, others, 1.0);
+        assert_eq!(probs, vec![0.25, 0.5, 1.0]);
+
+        let player = 2000.0;
         let others = vec![2100.0, 1400.0, 1000.0];
 
         let probs = get_prob(player, others, 2.0);
-        assert_eq!(
-            probs,
-            vec![0.6490066225165563, 0.9172185430463575, 0.9999999999999999]
-        )
-    }
+        assert_eq!(probs, vec![0.6009389671361502, 0.8849765258215962, 1.0]);
 
-    #[test]
-    fn test_get_probs() {
         let player = 2658.0;
         let others = vec![2344.0, 2638.0, 1986.0];
 
         let probs = get_prob(player, others, 2.0);
         assert_eq!(probs, vec![0.30645020913647375, 0.9286094600336872, 1.0])
+    }
+
+    #[test]
+    fn test_get_prob_neg() {
+        let player = 50.0;
+        let others = vec![
+            0.0,
+            8.656927044747817,
+            91.34307295525218,
+            192.00970137063928,
+            199.66668579230645,
+        ];
+
+        let probs = get_prob(player, others, 1.0);
+        assert_eq!(
+            probs,
+            vec![
+                0.22054405366687624,
+                0.44618806690254964,
+                0.671832080138223,
+                0.8381714772910934,
+                1.0
+            ]
+        )
+    }
+
+    #[test]
+    fn test_get_prob_stability() {
+        let player = 2000.0;
+        let others = vec![2100.0, 1400.0, 1000.0];
+
+        let probs = get_prob(player, others, 3.0);
+        assert_eq!(probs, vec![0.7098786828422877, 0.9405545927209705, 1.0])
     }
 }

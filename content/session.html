@@ -8,9 +8,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
   </head>
   <body>
-    <h2>Session</h2>
     {{ if session }}
   <div class="container-md">
+    <h2>Session</h2>
     <h3>Add Match</h3>
     <h4>Winners</h4>
     <select class="form-select" multiple aria-label="size 20 multiple select example" id="winners-select">
@@ -28,7 +28,7 @@
     <h3>Generate Matches</h3>
     <select class="form-select" multiple aria-label="size 20 multiple select example" id="matchmake-select">
       {{ for player in session_players }}
-      <option value="{player.id}">{player.name}</option>
+      <option value="{player.id}" selected="selected">{player.name}</option>
       {{ endfor }}
     </select>
     <button type="button" class="btn btn-primary" id="generate-matches">Generate</button>
