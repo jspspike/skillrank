@@ -13,6 +13,8 @@ pub const SESSION: &str = r##"
                   "stability": Number($("#stability-select").val())
                 }
               }),
+          }).done(function() {
+            location.reload();
           });
         }); 
         $('#add-match').click(function () {
@@ -24,6 +26,10 @@ pub const SESSION: &str = r##"
                 "team1": $('#winners-select').val().map(x => Number(x)),
                 "team2": $('#losers-select').val().map(x => Number(x)),
               }),
+            }).done(function () {
+                const successAddMatchToast = document.getElementById('add-match-toast');
+                const toast = bootstrap.Toast.getOrCreateInstance(successAddMatchToast);
+                toast.show();
             });
           });
         $('#generate-matches').click(function () {
@@ -41,12 +47,16 @@ pub const SESSION: &str = r##"
               url: '/session',
               type: 'PATCH',
               data: JSON.stringify($('#session-select').val().map(x => Number(x))),
+          }).done(function() {
+            location.reload();
           });
         });
         $('#stop-session').click(function () {
           $.ajax({
               url: '/session',
               type: 'DELETE',
+          }).done(function() {
+            location.reload();
           });
         });
       });
@@ -67,6 +77,10 @@ pub const PLAYER: &str = r##"
                 "name": $("#player-name").val(),
                 "score": isNaN(score) ? null : score,
               }),
+          }).done(function () {
+            const successAddPlayerToast = document.getElementById('add-player-toast');
+            const toast = bootstrap.Toast.getOrCreateInstance(successAddPlayerToast);
+            toast.show();
           });
         });
       });

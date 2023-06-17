@@ -79,7 +79,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let rating_system = TrueSkill::new(TrueSkillConfig {
                 draw_probability: 0.0,
                 beta: 6.0,
-                default_dynamics: 0.15,
+                default_dynamics: 0.13,
             });
 
             games::add_match(&m.team1, &m.team2, client, rating_system).await?;
