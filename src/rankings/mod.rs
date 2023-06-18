@@ -1,4 +1,5 @@
 mod matches;
+mod pass;
 mod players;
 mod session;
 
@@ -19,7 +20,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(ctx: RouteContext<()>, name: &str) -> Result<Self> {
+    pub fn new(ctx: &RouteContext<()>, name: &str) -> Result<Self> {
         let namespace = ctx.durable_object("RANKINGS")?;
         let stub = namespace.id_from_name(name)?.get_stub()?;
 
@@ -57,6 +58,16 @@ impl Client {
 
         self.stub.fetch_with_request(req).await?.json().await
     }
+
+    pub async fn check_pass(&self, req: &Request) -> Result<bool> {
+        if req.method() == Method::Get {
+            return Ok(true);
+        }
+
+        let pass = req.headers().get("passphrase").unwrap().unwrap();
+        let ok = self.fetch("/pass", &pass, Method::Post).await?;
+        Ok(ok)
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -76,15 +87,36 @@ impl DurableObject for Rankings {
     }
 
     async fn fetch(&mut self, req: Request) -> Result<Response> {
-        match req.path().as_str() {
-            "/setup" => {
+        let salt = self.env.secret("PASS_SALT")?.to_string();
+
+        match req.path().split("/").last().unwrap() {
+            "pass" => match req.method() {
+                Method::Get => {
+                    let result = pass::get(&self.state).await?;
+                    Response::from_json(&result)
+                }
+                Method::Post => {
+                    let passphrase: String = req.clone()?.json().await?;
+                    let ok = pass::check(&self.state, passphrase, salt).await?;
+                    Response::from_json(&ok)
+                }
+                Method::Delete => {
+                    pass::delete(&self.state).await?;
+                    Response::from_json(&Empty {})
+                }
+                _ => Response::error("Not found", 404),
+            },
+            "setup" => {
+                let pass: String = req.clone()?.json().await?;
+
                 players::setup(&self.state).await?;
                 matches::setup(&self.state).await?;
                 session::reset(&self.state).await?;
+                pass::set(&self.state, pass, salt).await?;
 
                 Response::from_json(&Empty {})
             }
-            "/players" => match req.method() {
+            "players" => match req.method() {
                 Method::Get => {
                     let players = players::get(&self.state).await?;
                     Response::from_json(&players)
@@ -102,7 +134,7 @@ impl DurableObject for Rankings {
                 }
                 _ => Response::error("Not Found", 404),
             },
-            "/matches" => match req.method() {
+            "matches" => match req.method() {
                 Method::Get => {
                     let matches = matches::get(&self.state).await?;
                     Response::from_json(&matches)
@@ -115,7 +147,7 @@ impl DurableObject for Rankings {
                 }
                 _ => Response::error("Not Found", 404),
             },
-            "/session" => match req.method() {
+            "session" => match req.method() {
                 Method::Get => {
                     let session = session::get(&self.state).await?;
                     Response::from_json(&session)

@@ -4,7 +4,7 @@ mod scripts;
 mod utils;
 
 use games::matchmaking;
-use rankings::{Match, Player, Session};
+use rankings::{Empty, Match, Player, Session};
 
 use std::collections::HashMap;
 
@@ -23,28 +23,60 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     let router = Router::new();
 
     router
-        .on_async("/setup", |req, ctx| async move {
+        .on_async("/:id/players", |req, ctx| async move {
+            let id = ctx.param("id").unwrap();
             let namespace = ctx.durable_object("RANKINGS")?;
-            let stub = namespace.id_from_name("Spikeball")?.get_stub()?;
+
+            let client = rankings::Client::new(&ctx, id)?;
+            if !client.check_pass(&req).await? {
+                return Response::error("", 401);
+            }
+            let stub = namespace.id_from_name(id)?.get_stub()?;
             stub.fetch_with_request(req).await
         })
-        .on_async("/players", |req, ctx| async move {
+        .on_async("/:id/matches", |req, ctx| async move {
+            let id = ctx.param("id").unwrap();
             let namespace = ctx.durable_object("RANKINGS")?;
-            let stub = namespace.id_from_name("Spikeball")?.get_stub()?;
+
+            let client = rankings::Client::new(&ctx, id)?;
+            if !client.check_pass(&req).await? {
+                return Response::error("", 401);
+            }
+            let stub = namespace.id_from_name(id)?.get_stub()?;
             stub.fetch_with_request(req).await
         })
-        .on_async("/matches", |req, ctx| async move {
+        .on_async("/:id/session", |req, ctx| async move {
+            let id = ctx.param("id").unwrap();
             let namespace = ctx.durable_object("RANKINGS")?;
-            let stub = namespace.id_from_name("Spikeball")?.get_stub()?;
+
+            let client = rankings::Client::new(&ctx, id)?;
+            if !client.check_pass(&req).await? {
+                return Response::error("", 401);
+            }
+            let stub = namespace.id_from_name(id)?.get_stub()?;
             stub.fetch_with_request(req).await
         })
-        .on_async("/session", |req, ctx| async move {
-            let namespace = ctx.durable_object("RANKINGS")?;
-            let stub = namespace.id_from_name("Spikeball")?.get_stub()?;
-            stub.fetch_with_request(req).await
+        .on_async("/create/:id", |mut req, ctx| async move {
+            let id = ctx.param("id").unwrap();
+            let client = rankings::Client::new(&ctx, id)?;
+            let pass_created: bool = client.fetch("/pass", "", Method::Get).await?;
+
+            if pass_created {
+                return Response::error("ID already exists", 406);
+            }
+
+            let pass: String = req.text().await?;
+            let _: Empty = client.fetch("/setup", &pass, Method::Put).await?;
+
+            ctx.kv("SKILLRANK_IDS")?
+                .put(id, Date::now().to_string())?
+                .execute()
+                .await?;
+            Response::ok("")
         })
-        .on_async("/generate-matches", |mut req, ctx| async move {
-            let client = rankings::Client::new(ctx, "Spikeball")?;
+        .on_async("/:id/generate-matches", |mut req, ctx| async move {
+            let id = ctx.param("id").unwrap();
+            let client = rankings::Client::new(&ctx, id)?;
             let participants: Vec<u16> = req.json().await?;
             let players: HashMap<u16, Player<RatingType>> =
                 client.fetch("/players", "", Method::Get).await?;
@@ -73,8 +105,13 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             });
             Response::ok(matches_str)
         })
-        .on_async("/add-match", |mut req, ctx| async move {
-            let client = rankings::Client::new(ctx, "Spikeball")?;
+        .on_async("/:id/add-match", |mut req, ctx| async move {
+            let id = ctx.param("id").unwrap();
+            let client = rankings::Client::new(&ctx, id)?;
+            if !client.check_pass(&req).await? {
+                return Response::error("", 401);
+            }
+
             let m: Match = req.json().await?;
             let rating_system = TrueSkill::new(TrueSkillConfig {
                 draw_probability: 0.0,
@@ -85,20 +122,22 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             games::add_match(&m.team1, &m.team2, client, rating_system).await?;
             Response::ok("")
         })
-        .get_async("/player", |_req, _ctx| async move {
+        .get_async("/:id/player", |_req, ctx| async move {
             let template = include_str!("../content/player.html");
             let mut tt = TinyTemplate::new();
             tt.add_template("/player", template)
                 .map_err(|err| err.to_string())?;
 
+            let id = ctx.param("id").unwrap();
+
             #[derive(Serialize)]
             struct Context {
-                title: String,
+                id: String,
                 default_score: f64,
             }
 
             let context = Context {
-                title: "Spikeball".to_string(),
+                id: id.clone(),
                 default_score: 25.0,
             };
 
@@ -108,12 +147,15 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             rendered.push_str(scripts::PLAYER);
             Response::from_html(rendered)
         })
-        .get_async("/sesh", |_req, ctx| async move {
-            let client = rankings::Client::new(ctx, "Spikeball")?;
+        .get_async("/:id/sesh", |_req, ctx| async move {
+            let id = ctx.param("id").unwrap();
+            let client = rankings::Client::new(&ctx, id)?;
             let template = include_str!("../content/session.html");
             let mut tt = TinyTemplate::new();
             tt.add_template("/session", template)
                 .map_err(|err| err.to_string())?;
+
+            let id = ctx.param("id").unwrap();
 
             let players: HashMap<u16, Player<RatingType>> =
                 client.fetch("/players", "", Method::Get).await?;
@@ -126,7 +168,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
             #[derive(Serialize)]
             struct Context {
-                title: String,
+                id: String,
                 session: bool,
                 players: Vec<PlayerString>,
                 session_players: Vec<PlayerString>,
@@ -154,7 +196,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             };
 
             let context = Context {
-                title: "Spikeball".to_string(),
+                id: id.clone(),
                 session: session.is_some(),
                 players: players_string,
                 session_players,
@@ -166,8 +208,9 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             rendered.push_str(scripts::SESSION);
             Response::from_html(rendered)
         })
-        .get_async("/", |_req, ctx| async move {
-            let client = rankings::Client::new(ctx, "Spikeball")?;
+        .get_async("/:id", |_req, ctx| async move {
+            let id = ctx.param("id").unwrap();
+            let client = rankings::Client::new(&ctx, id)?;
             let template = include_str!("../content/index.html");
             let mut tt = TinyTemplate::new();
             tt.add_template("/", template)
@@ -188,7 +231,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
             #[derive(Serialize)]
             struct Context {
-                title: String,
+                id: String,
                 matches: Vec<MatchString>,
                 players: Vec<PlayerString>,
             }
@@ -229,13 +272,17 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 .collect();
 
             let context = Context {
-                title: "Spikeball".to_string(),
+                id: id.clone(),
                 matches: matches_string,
                 players: players_string,
             };
 
-            let rendered = tt.render("/", &context).map_err(|err| err.to_string())?;
+            let mut rendered = tt.render("/", &context).map_err(|err| err.to_string())?;
+            rendered.push_str(scripts::INDEX);
             Response::from_html(rendered)
+        })
+        .get_async("/", |_req, _ctx| async move {
+            Response::from_html(include_str!("../content/create.html"))
         })
         .run(req, env)
         .await

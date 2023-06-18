@@ -4,43 +4,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script> 
-    <title>{title}</title>
+    <title>SkillRank</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
   </head>
   <body>
-    <h2>Session</h2>
-    {{ if session }}
   <div class="container-md">
-    <h3>Add Match</h3>
-    <h4>Winners</h4>
-    <select class="form-select" multiple aria-label="size 20 multiple select example" id="winners-select">
-      {{ for player in session_players }}
-      <option value="{player.id}">{player.name}</option>
-      {{ endfor }}
-    </select>
-    <h4>Losers</h4>
-    <select class="form-select" multiple aria-label="size 20 multiple select example" id="losers-select">
-      {{ for player in session_players }}
-      <option value="{player.id}">{player.name}</option>
-      {{ endfor }}
-    </select>
-    <button type="button" class="btn btn-primary" id="add-match">Add Match</button>
-    <h3>Generate Matches</h3>
-    <select class="form-select" multiple aria-label="size 20 multiple select example" id="matchmake-select">
-      {{ for player in session_players }}
-      <option value="{player.id}" selected="selected">{player.name}</option>
-      {{ endfor }}
-    </select>
-    <button type="button" class="btn btn-primary" id="generate-matches">Generate</button>
-    <p class="h5" id="match-area"></p>
-    <h3>Add to Session</h3>
-    <select class="form-select" multiple aria-label="size 20 multiple select example" id="session-select">
-      {{ for player in players }}
-      <option value="{player.id}">{player.name}</option>
-      {{ endfor }}
-    </select>
-    <button type="button" class="btn btn-primary" id="add-session">Add</button>
-    <button type="button" class="btn btn-danger" id="stop-session">Stop Session</button>
+    <a href="/{id}" class="text-reset text-decoration-none"><h1 id="board-id">{id}</h1></a>
+    <h3>Session</h3>
+    {{ if session }}
+    <input type="password" class="form-control" placeholder="Passphrase" id="passphrase">
+    <h4>Add Match</h4>
     <div class="toast align-items-center text-bg-primary border-0" id="add-match-toast" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
         <div class="toast-body">
@@ -49,9 +22,37 @@
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     </div>
+    <h5>Winners</h5>
+    <select class="form-select" multiple aria-label="size 20 multiple select example" id="winners-select">
+      {{ for player in session_players }}
+      <option value="{player.id}">{player.name}</option>
+      {{ endfor }}
+    </select>
+    <h5>Losers</h5>
+    <select class="form-select" multiple aria-label="size 20 multiple select example" id="losers-select">
+      {{ for player in session_players }}
+      <option value="{player.id}">{player.name}</option>
+      {{ endfor }}
+    </select>
+    <button type="button" class="btn btn-primary" id="add-match">Add Match</button>
+    <h4>Generate Matches</h4>
+    <select class="form-select" multiple aria-label="size 20 multiple select example" id="matchmake-select">
+      {{ for player in session_players }}
+      <option value="{player.id}" selected="selected">{player.name}</option>
+      {{ endfor }}
+    </select>
+    <button type="button" class="btn btn-primary" id="generate-matches">Generate</button>
+    <p class="h5" id="match-area"></p>
+    <h4>Add to Session</h4>
+    <select class="form-select" multiple aria-label="size 20 multiple select example" id="session-select">
+      {{ for player in players }}
+      <option value="{player.id}">{player.name}</option>
+      {{ endfor }}
+    </select>
+    <button type="button" class="btn btn-primary" id="add-session">Add</button>
+    <button type="button" class="btn btn-danger" id="stop-session">Stop Session</button>
   </div>
     {{ else }}
-  <div class="container-md">
     <select class="form-select" multiple aria-label="size 20 multiple select example" id="player-select">
       {{ for player in players }}
       <option value="{player.id}">{player.name}</option>
@@ -60,7 +61,8 @@
     <input type="text" class="form-control" placeholder="Number of Games" aria-label="Games" aria-describedby="num_games" id="num-games-select">
     <input type="text" class="form-control" placeholder="Players per Team" aria-label="Players" aria-describedby="players_per_team" id="players-per-select">
     <input type="text" class="form-control" placeholder="Matchmaking Stability" aria-label="Stability" aria-describedby="stability" id="stability-select">
+    <input type="password" class="form-control" placeholder="Passphrase" id="passphrase">
     <button type="button" class="btn btn-primary" id="start-session">Start</button>
-  </div>
     {{ endif }}
+  </div>
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>

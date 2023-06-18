@@ -13,6 +13,10 @@ command = "worker-build --release"
 [durable_objects]
 bindings = [{name = "RANKINGS", class_name = "Rankings"}]
 
+[[kv_namespaces]]
+binding = "SKILLRANK_IDS"
+id = "35a3b32e5e44468fa99c5b03b388bfdd"
+
 [[migrations]]
 tag = "v1"
 new_classes = ["Rankings"]

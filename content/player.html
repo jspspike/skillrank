@@ -3,15 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{title}</title>
+    <title>SkillRank</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script> 
   </head>
   <body>
   <div class="container-sm">
-    <h2>Add Player</h2> 
+    <a href="/{id}" class="text-reset text-decoration-none"><h1 id="board-id">{id}</h1></a>
+    <h3>Add Player</h3> 
     <input type="text" class="form-control" placeholder="Name" aria-label="Games" id="player-name">
     <input type="text" class="form-control" placeholder="Score (Default: {default_score})" aria-label="Games" id="player-score">
+    <input type="password" class="form-control" placeholder="Passphrase" aria-label="Games" id="passphrase">
     <button type="button" class="btn btn-primary" id="add-player">Add</button>
     <div class="toast align-items-center text-bg-primary border-0" id="add-player-toast" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
