@@ -89,7 +89,7 @@ impl DurableObject for Rankings {
     async fn fetch(&mut self, req: Request) -> Result<Response> {
         let salt = self.env.secret("PASS_SALT")?.to_string();
 
-        match req.path().split("/").last().unwrap() {
+        match req.path().split('/').last().unwrap() {
             "pass" => match req.method() {
                 Method::Get => {
                     let result = pass::get(&self.state).await?;

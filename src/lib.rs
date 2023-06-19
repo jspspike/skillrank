@@ -227,6 +227,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 rank: usize,
                 name: String,
                 score: isize,
+                wins: u16,
+                losses: u16,
             }
 
             #[derive(Serialize)]
@@ -236,8 +238,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 players: Vec<PlayerString>,
             }
 
-            let players: HashMap<u16, Player<RatingType>> =
-                client.fetch("/players", "", Method::Get).await?;
+            let p = client.fetch("/players", "", Method::Get).await;
+
+            let players: HashMap<u16, Player<RatingType>> = match p {
+                Ok(players) => players,
+                Err(e) => return Response::error(e.to_string(), 404),
+            };
             let matches: Vec<Match> = client.fetch("/matches", "", Method::Get).await?;
 
             let matches_string = matches
@@ -268,6 +274,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                     rank: index + 1,
                     name: player.name.clone(),
                     score: player.rating.rating() as isize,
+                    wins: player.wins,
+                    losses: player.wins,
                 })
                 .collect();
 

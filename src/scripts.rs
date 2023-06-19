@@ -148,7 +148,7 @@ function getCookie(name) {
         }
 
         $('#add-player').click(function () {
-          const score = Number($("#player-score").val());
+          const score = $("#player-score").val();
           const boardId = document.getElementById("board-id").innerHTML;
           const passphrase = $('#passphrase').val();
 
@@ -160,7 +160,7 @@ function getCookie(name) {
               },
               data: JSON.stringify({
                 "name": $("#player-name").val(),
-                "score": isNaN(score) ? null : score,
+                "score": score ? Number(score) : null,
               }),
           }).done(function () {
             const successAddPlayerToast = document.getElementById('add-player-toast');
