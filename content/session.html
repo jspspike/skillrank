@@ -4,11 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script> 
-    <title>SkillRank</title>
+    <title>skillrank</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
   </head>
   <body>
-  <div class="container-md">
+  <div class="container-sm">
     <a href="/{id}" class="text-reset text-decoration-none"><h1 id="board-id">{id}</h1></a>
     <h3>Session</h3>
     {{ if session }}
@@ -35,6 +35,7 @@
       {{ endfor }}
     </select>
     <button type="button" class="btn btn-primary" id="add-match">Add Match</button>
+    <p><br>Add players to winners and losers to add match. Make sure to only press Add Match once.</p>
     <h4>Generate Matches</h4>
     <select class="form-select" multiple aria-label="size 20 multiple select example" id="matchmake-select">
       {{ for player in session_players }}
@@ -43,6 +44,7 @@
     </select>
     <button type="button" class="btn btn-primary" id="generate-matches">Generate</button>
     <p class="h5" id="match-area"></p>
+    <p><br>Generated matches will be based on player ratings. Matchmaking will take into account which players have played a match this session (via entered matches above). This way matchmaking can balance the number of times players have to sit out in the case of more players than spots in active games.</p>
     <h4>Add to Session</h4>
     <select class="form-select" multiple aria-label="size 20 multiple select example" id="session-select">
       {{ for player in players }}
@@ -53,6 +55,7 @@
     <button type="button" class="btn btn-danger" id="stop-session">Stop Session</button>
   </div>
     {{ else }}
+  <div class="container-sm">
     <select class="form-select" multiple aria-label="size 20 multiple select example" id="player-select">
       {{ for player in players }}
       <option value="{player.id}">{player.name}</option>
@@ -63,6 +66,13 @@
     <input type="text" class="form-control" placeholder="Matchmaking Stability" aria-label="Stability" aria-describedby="stability" id="stability-select">
     <input type="password" class="form-control" placeholder="Passphrase" id="passphrase">
     <button type="button" class="btn btn-primary" id="start-session">Start</button>
-    {{ endif }}
+    <p><br>Sessions are how leaderboards are managed. Add the players who you would like to add matches with and generate matches for. You can always add players after the session is started.</p>
+    <h6>Number of Games</h6>
+    <p>The number of games that can be run concurrently (e.g number of fields, nets, boards). This is so the matchmaking system knows how matches should be generated at once.</p>
+    <h6>Players per Team</h6>
+    <p>Number of players on each team. This is so the matchmaking system knows how many players to put in a game. This limit will not affect match entry. Meaning even if Players per Team is set to 2, you could enter 3 players on the winners and 2 on the losers.</p>
+    <h6>Matchmaking Stability</h6>
+    <p>There is a random factor that allows the matchmaking system to generate matches deviating from the "optimal" matches. This is to allow players to play with a larger variety of players. Increase this value to make matches less random and closer to the "optimal" pairs.</p>
   </div>
+    {{ endif }}
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>

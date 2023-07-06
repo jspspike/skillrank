@@ -275,7 +275,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                     name: player.name.clone(),
                     score: player.rating.rating() as isize,
                     wins: player.wins,
-                    losses: player.wins,
+                    losses: player.losses,
                 })
                 .collect();
 

@@ -25,6 +25,20 @@ pub struct GameInfo {
     pub stability: f64,
 }
 
+/// First active players are selected, this will be players in the provided session who have played
+/// the least number of games and have closest ratings.
+///
+/// Then the top player will be chosen for team 1, a second player will be chosen for team two at
+/// random with a higher probability of being chosen if the player's rating is closest to the player
+/// from team 1.
+///
+/// Then until there are enough players for the game, another player will be chosen for team 1 at
+/// random. They will have a higher probability of being chosen if their rating is closer to the
+/// average rating of all selected players. Another player will be chosen at random for team 2.
+/// They will have a higher probability of being chosen if their rating is closest to the
+/// difference in rating between team 1 and team 2.
+///
+/// Once a game is full it is added and this process repeats until all games are filled.
 pub fn generate_matches(
     players: Vec<u16>,
     ranks: &HashMap<u16, Player<RatingType>>,
@@ -44,6 +58,7 @@ pub fn generate_matches(
         let mut team1: Vec<u16> = vec![];
         let mut team2: Vec<u16> = vec![];
 
+        // Get top player
         let top_player = active_players.pop_front().unwrap();
         team1.push(top_player.id);
 
@@ -52,6 +67,7 @@ pub fn generate_matches(
             .map(|player| player.rating.rating())
             .collect();
 
+        // Get second player closest to top player's score
         let top_player2 = find_player(
             top_player.rating.rating(),
             active_player_scores,
@@ -70,6 +86,7 @@ pub fn generate_matches(
                 .map(|player| player.rating.rating())
                 .collect();
 
+            // Find next player to team 1 closest to selected players average scores
             let next_player = find_player(
                 score_avg,
                 active_player_scores,
@@ -77,6 +94,8 @@ pub fn generate_matches(
                 &mut active_players,
             );
 
+            // Find player for team 2 where diff(next_player, next_player2) is closest to diff
+            // between teams
             let diffs: Vec<f64> = active_players
                 .iter()
                 .map(|player| (player.rating.rating() - next_player.rating.rating()).abs())

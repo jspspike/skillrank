@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use skillratings::Rating;
 use worker::*;
 
+/// Gets players who have played the least games in provided session and have closest ratings
 pub(super) fn get_active_players(
     players: Vec<u16>,
     ranks: &HashMap<u16, Player<RatingType>>,
@@ -21,6 +22,9 @@ pub(super) fn get_active_players(
     Ok(active_players)
 }
 
+/// Returns players with each index representing number of games played by that player.
+/// So index 0 will have all players in provided session who have played 0 games, index 1 will have
+/// players who have played 1 game etc.
 fn setup_player_info(
     players: Vec<u16>,
     ranks: &HashMap<u16, Player<RatingType>>,
