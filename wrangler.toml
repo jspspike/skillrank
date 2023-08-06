@@ -3,6 +3,7 @@ workers_dev = true
 
 main = "build/worker/shim.mjs"
 compatibility_date = "2022-06-09"
+route = {pattern = "*skillrank.games/*", zone_name = "skillrank.games"}
 
 [vars]
 WORKERS_RS_VERSION = "0.0.11"
@@ -16,6 +17,7 @@ bindings = [{name = "RANKINGS", class_name = "Rankings"}]
 [[kv_namespaces]]
 binding = "SKILLRANK_IDS"
 id = "35a3b32e5e44468fa99c5b03b388bfdd"
+preview_id = "35a3b32e5e44468fa99c5b03b388bfda"
 
 [[migrations]]
 tag = "v1"
