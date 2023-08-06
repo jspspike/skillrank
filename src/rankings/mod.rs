@@ -8,6 +8,7 @@ pub(crate) use matches::Match;
 pub(crate) use players::{Player, PlayerCreate};
 pub(crate) use session::{Session, SessionCreate};
 
+use futures::try_join;
 use std::collections::HashMap;
 
 use serde::de::DeserializeOwned;
@@ -109,9 +110,11 @@ impl DurableObject for Rankings {
             "setup" => {
                 let pass: String = req.clone()?.json().await?;
 
-                players::setup(&self.state).await?;
-                matches::setup(&self.state).await?;
-                session::reset(&self.state).await?;
+                let players_fut = players::setup(&self.state);
+                let matches_fut = matches::setup(&self.state);
+                let session_fut = session::reset(&self.state);
+
+                try_join!(players_fut, matches_fut, session_fut)?;
                 pass::set(&self.state, pass, salt).await?;
 
                 Response::from_json(&Empty {})

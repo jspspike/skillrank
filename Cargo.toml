@@ -19,6 +19,7 @@ skillratings = { version = "0.25.0", features = ["serde"] }
 serde-wasm-bindgen = "0.5"
 tinytemplate = "1.2.1"
 sha2 = "0.10.7"
+futures = "0.3.28"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

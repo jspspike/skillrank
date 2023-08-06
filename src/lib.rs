@@ -6,6 +6,7 @@ mod utils;
 use games::matchmaking;
 use rankings::{Empty, Match, Player, Session};
 
+use futures::try_join;
 use std::collections::HashMap;
 
 use serde::Serialize;
@@ -77,10 +78,14 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .on_async("/:id/generate-matches", |mut req, ctx| async move {
             let id = ctx.param("id").unwrap();
             let client = rankings::Client::new(&ctx, id)?;
-            let participants: Vec<u16> = req.json().await?;
-            let players: HashMap<u16, Player<RatingType>> =
-                client.fetch("/players", "", Method::Get).await?;
-            let session: Option<Session> = client.fetch("/session", "", Method::Get).await?;
+            let participants_fut = req.json();
+            let players_fut = client.fetch("/players", "", Method::Get);
+            let session_fut = client.fetch("/session", "", Method::Get);
+
+            let info: (Vec<u16>, HashMap<u16, Player<RatingType>>, Option<Session>) =
+                try_join!(participants_fut, players_fut, session_fut)?;
+            let (participants, players, session) = info;
+
             let sesh = session.unwrap();
             let game_info = sesh.game_info;
 
@@ -157,9 +162,13 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
             let id = ctx.param("id").unwrap();
 
-            let players: HashMap<u16, Player<RatingType>> =
-                client.fetch("/players", "", Method::Get).await?;
-            let session: Option<Session> = client.fetch("/session", "", Method::Get).await?;
+            let players_fut = client.fetch("/players", "", Method::Get);
+            let session_fut = client.fetch("/session", "", Method::Get);
+
+            let info: (HashMap<u16, Player<RatingType>>, Option<Session>) =
+                try_join!(players_fut, session_fut)?;
+            let (players, session) = info;
+
             #[derive(Serialize)]
             struct PlayerString {
                 name: String,
@@ -239,12 +248,17 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             }
 
             let p = client.fetch("/players", "", Method::Get).await;
+            let matches: Vec<Match> = client.fetch("/matches", "", Method::Get).await?;
 
             let players: HashMap<u16, Player<RatingType>> = match p {
                 Ok(players) => players,
                 Err(e) => return Response::error(e.to_string(), 404),
             };
-            let matches: Vec<Match> = client.fetch("/matches", "", Method::Get).await?;
+
+            ctx.kv("SKILLRANK_IDS")?
+                .put(id, Date::now().to_string())?
+                .execute()
+                .await?;
 
             let matches_string = matches
                 .iter()
