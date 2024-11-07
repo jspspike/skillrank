@@ -35,18 +35,13 @@ function getCookie(name) {
                 request.setRequestHeader("passphrase", passphrase);
               },
               data: JSON.stringify({
-                "players": $('#player-select').val().map(x => Number(x)),
-                "game_info": {
-                  "games": Number($("#num-games-select").val()),
-                  "players_per_team": Number($("#players-per-select").val()),
-                  "stability": Number($("#stability-select").val())
-                }
+                "players": $('#player-select').val().map(x => Number(x))
               }),
           }).done(function() {
             setCookie("passphrase", passphrase)
             location.reload();
           });
-        }); 
+        });
         $('#add-match').click(function () {
           const boardId = document.getElementById("board-id").innerHTML;
           const passphrase = $('#passphrase').val();
@@ -72,13 +67,21 @@ function getCookie(name) {
         $('#generate-matches').click(function () {
           const boardId = document.getElementById("board-id").innerHTML;
           const passphrase = $('#passphrase').val();
+
           $.ajax({
               url: '/' + boardId + '/generate-matches',
               type: 'PUT',
               beforeSend: function(request) {
                 request.setRequestHeader("passphrase", passphrase);
               },
-              data: JSON.stringify($('#matchmake-select').val().map(x => Number(x))),
+              data: JSON.stringify({
+                "participants": $('#matchmake-select').val().map(x => Number(x)),
+                "game_info": {
+                  "games": Number($("#num-games-select").val()),
+                  "players_per_team": Number($("#players-per-select").val()),
+                  "stability": Number($("#stability-select").val())
+                }
+              }),
               success: function (data) {
                 document.getElementById("match-area").innerHTML = data;
               },
@@ -142,7 +145,7 @@ function getCookie(name) {
 }
 
       $(document).ready(function () {
-        const cookie = getCookie('passphrase'); 
+        const cookie = getCookie('passphrase');
         if (cookie) {
           $('#passphrase').val(cookie);
         }

@@ -35,16 +35,7 @@ impl Client {
         method: Method,
     ) -> Result<B> {
         let string = serde_json::to_string(&value)?;
-        let body = match to_value(&string).ok() {
-            Some(str) => {
-                if str == "\"\"" {
-                    None
-                } else {
-                    Some(str)
-                }
-            }
-            None => None,
-        };
+        let body = to_value(&string).ok().filter(|str| str != "\"\"");
 
         let req = Request::new_with_init(
             format!("https://w{}", path).as_str(),
@@ -88,6 +79,7 @@ impl DurableObject for Rankings {
     }
 
     async fn fetch(&mut self, req: Request) -> Result<Response> {
+        console_log!("{:?}", req);
         let salt = self.env.secret("PASS_SALT")?.to_string();
 
         match req.path().split('/').last().unwrap() {

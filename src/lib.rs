@@ -9,11 +9,14 @@ use rankings::{Empty, Match, Player, Session};
 use futures::try_join;
 use std::collections::HashMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use skillratings::trueskill::{TrueSkill, TrueSkillConfig, TrueSkillRating};
 use skillratings::{Rating, TeamRatingSystem};
 use tinytemplate::TinyTemplate;
 use worker::*;
+
+use crate::games::matchmaking::GameInfo;
+use crate::utils::format_float;
 
 // Should probably use type parameter for structs where types are used
 type RatingType = TrueSkillRating;
@@ -78,18 +81,23 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .on_async("/:id/generate-matches", |mut req, ctx| async move {
             let id = ctx.param("id").unwrap();
             let client = rankings::Client::new(&ctx, id)?;
-            let participants_fut = req.json();
+            let body_fut = req.json();
             let players_fut = client.fetch("/players", "", Method::Get);
             let session_fut = client.fetch("/session", "", Method::Get);
 
-            let info: (Vec<u16>, HashMap<u16, Player<RatingType>>, Option<Session>) =
-                try_join!(participants_fut, players_fut, session_fut)?;
-            let (participants, players, session) = info;
+            #[derive(Deserialize)]
+            struct MatchInfo {
+                participants: Vec<u16>,
+                game_info: GameInfo,
+            }
+
+            let info: (MatchInfo, HashMap<u16, Player<RatingType>>, Option<Session>) =
+                try_join!(body_fut, players_fut, session_fut)?;
+            let (body, players, session) = info;
 
             let sesh = session.unwrap();
-            let game_info = sesh.game_info;
 
-            let matches = matchmaking::generate_matches(participants, &players, sesh, game_info)?;
+            let matches = matchmaking::generate_matches(body.participants, &players, sesh, body.game_info)?;
             let matches_str: String = matches.iter().fold("".to_string(), |acc, m| {
                 let team_1 = m.team1.iter().fold("".to_string(), |team1_acc, p| {
                     let player = players.get(p).unwrap();
@@ -224,6 +232,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let mut tt = TinyTemplate::new();
             tt.add_template("/", template)
                 .map_err(|err| err.to_string())?;
+            tt.add_formatter("format_float", format_float);
 
             #[derive(Serialize)]
             struct MatchString {
@@ -235,7 +244,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             struct PlayerString {
                 rank: usize,
                 name: String,
-                score: isize,
+                score: f64,
                 wins: u16,
                 losses: u16,
             }
@@ -287,7 +296,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 .map(|(index, player)| PlayerString {
                     rank: index + 1,
                     name: player.name.clone(),
-                    score: player.rating.rating() as isize,
+                    score: player.rating.rating(),
                     wins: player.wins,
                     losses: player.losses,
                 })
